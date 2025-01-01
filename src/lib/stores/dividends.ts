@@ -45,7 +45,6 @@ async function saveDividends(data: Dividend[]) {
 
 const allDividends = writable<Dividend[]>([]);
 
-// Create a derived store that filters dividends by current user
 export const dividends = derived(
     [allDividends, user],
     ([$allDividends, $user]) => {
@@ -54,7 +53,6 @@ export const dividends = derived(
     }
 );
 
-// Subscribe to user changes to load data
 user.subscribe(($user) => {
     if ($user && browser) {
         loadDividends($user.uid).then(data => {
@@ -65,7 +63,6 @@ user.subscribe(($user) => {
     }
 });
 
-// Subscribe to changes and save to JSON file
 allDividends.subscribe((value) => {
     if (browser) {
         saveDividends(value).catch(console.error);

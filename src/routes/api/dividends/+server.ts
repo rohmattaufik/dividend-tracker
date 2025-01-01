@@ -1,63 +1,42 @@
 import { json } from '@sveltejs/kit';
-import fs from 'fs/promises';
-import path from 'path';
 import type { RequestEvent } from '@sveltejs/kit';
-import type { Dividend } from '$lib/types';
-
-const dataPath = path.join(process.cwd(), 'src/lib/data/dividends.json');
-
-async function ensureDirectoryExists() {
-    const dir = path.dirname(dataPath);
-    try {
-        await fs.access(dir);
-    } catch {
-        await fs.mkdir(dir, { recursive: true });
-    }
-}
+import { connectDB } from '$lib/db/mongo';
+import DividendModel from '$lib/models/Dividend';
 
 export async function GET({ url }: RequestEvent) {
     try {
+        await connectDB();
         const userId = url.searchParams.get('userId');
-        const data = await fs.readFile(dataPath, 'utf-8');
-        const allDividends: Dividend[] = JSON.parse(data);
         
         if (userId) {
-            return json(allDividends.filter(d => d.userId === userId));
+            const dividends = await DividendModel.find({ userId });
+            return json(dividends);
         }
         return json([]);
     } catch (error) {
-        console.error('Error reading dividends.json:', error);
-        return json([]);
+        console.error('Error reading dividends:', error);
+        return json({ error: 'Failed to fetch dividends' }, { status: 500 });
     }
 }
 
 export async function POST({ request }: RequestEvent) {
     try {
-        await ensureDirectoryExists();
-        
-        // Read existing data
-        let existingData: Dividend[] = [];
-        try {
-            const fileContent = await fs.readFile(dataPath, 'utf-8');
-            existingData = JSON.parse(fileContent);
-        } catch (error) {
-            // If file doesn't exist or is empty, continue with empty array
-            existingData = [];
+        await connectDB();
+        const newData = await request.json();
+
+        if (Array.isArray(newData)) {
+            // Handle bulk upsert
+            const operations = newData.map(dividend => ({
+                updateOne: {
+                    filter: { id: dividend.id },
+                    update: { $set: dividend },
+                    upsert: true
+                }
+            }));
+
+            await DividendModel.bulkWrite(operations);
         }
 
-        const newData = await request.json();
-        
-        // Merge existing and new data, removing duplicates by id
-        const mergedData = [...existingData, ...newData].reduce((acc: Dividend[], current: Dividend) => {
-            const x = acc.find((item: Dividend) => item.id === current.id);
-            if (!x) {
-                return [...acc, current];
-            } else {
-                return acc.map(item => item.id === current.id ? current : item);
-            }
-        }, [] as Dividend[]);
-
-        await fs.writeFile(dataPath, JSON.stringify(mergedData, null, 2));
         return json({ success: true });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
