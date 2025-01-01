@@ -8,5 +8,5 @@ declare namespace App {
 }
 
 declare module '$env/static/private' {
-	export const MONGODB_URI: string;
+	export const COCKROACH_DB_URL: string;
 }
