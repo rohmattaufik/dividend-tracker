@@ -6,6 +6,7 @@ import DividendModel from '$lib/models/Dividend';
 export async function GET({ url }: RequestEvent) {
     try {
         await connectDB();
+        console.log('Connected to MongoDB');
         const userId = url.searchParams.get('userId');
         
         if (userId) {
