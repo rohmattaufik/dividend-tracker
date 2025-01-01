@@ -5,7 +5,7 @@ import { user } from './auth';
 
 async function loadDividends(userId: string) {
     try {
-        const response = await fetch(`/.netlify/functions/dividends?userId=${userId}`);
+        const response = await fetch(`/api/dividends?userId=${userId}`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -18,7 +18,7 @@ async function loadDividends(userId: string) {
 
 async function saveDividends(data: Dividend[]) {
     try {
-        const response = await fetch(`/.netlify/functions/dividends`, {
+        const response = await fetch(`/api/dividends`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
