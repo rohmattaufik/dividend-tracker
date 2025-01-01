@@ -1,17 +1,15 @@
 import { json } from '@sveltejs/kit';
 import type { RequestEvent } from '@sveltejs/kit';
-import { db, initializeDatabase } from '$lib/db/knex';
+import { connectDB } from '$lib/db/mongo';
+import DividendModel from '$lib/models/Dividend';
 
 export async function GET({ url }: RequestEvent) {
     try {
-        await initializeDatabase();
+        await connectDB();
         const userId = url.searchParams.get('userId');
         
         if (userId) {
-            const dividends = await db('dividends')
-                .where({ userId })
-                .orderBy('date', 'desc')
-                .select('*');
+            const dividends = await DividendModel.find({ userId });
             return json(dividends);
         }
         return json([]);
@@ -23,19 +21,20 @@ export async function GET({ url }: RequestEvent) {
 
 export async function POST({ request }: RequestEvent) {
     try {
-        await initializeDatabase();
+        await connectDB();
         const newData = await request.json();
 
         if (Array.isArray(newData)) {
-            // Handle bulk upsert using CockroachDB's ON CONFLICT
-            const promises = newData.map(dividend => 
-                db('dividends')
-                    .insert(dividend)
-                    .onConflict('id')
-                    .merge()
-            );
+            // Handle bulk upsert
+            const operations = newData.map(dividend => ({
+                updateOne: {
+                    filter: { id: dividend.id },
+                    update: { $set: dividend },
+                    upsert: true
+                }
+            }));
 
-            await Promise.all(promises);
+            await DividendModel.bulkWrite(operations);
         }
 
         return json({ success: true });
