@@ -111,7 +111,6 @@
 
   onMount(() => {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-      console.log('Auth state changed:', currentUser);
       user.set(currentUser);
     });
 
