@@ -3,11 +3,9 @@ import type { Dividend } from '$lib/types';
 import { browser } from '$app/environment';
 import { user } from './auth';
 
-const base = browser ? '' : 'http://localhost:5173';
-
 async function loadDividends(userId: string) {
     try {
-        const response = await fetch(`${base}/api/dividends?userId=${userId}`);
+        const response = await fetch(`/.netlify/functions/dividends?userId=${userId}`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -20,7 +18,7 @@ async function loadDividends(userId: string) {
 
 async function saveDividends(data: Dividend[]) {
     try {
-        const response = await fetch(`${base}/api/dividends`, {
+        const response = await fetch(`/.netlify/functions/dividends`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
